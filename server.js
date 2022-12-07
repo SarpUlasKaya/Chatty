@@ -3,6 +3,7 @@ const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
 const formatMessage = require('./utils/messages');
+const {addUser, getCurrentUser} = require('./utils/users');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,16 +16,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 //Run when a client connects
 io.on('connection', socket => {
     socket.on('joinRoom', ({username, room}) => {
+        const user = addUser(socket.id, username, room);
+        socket.join(user.room);
+
         //Notify the user when they successfully connect
         socket.emit('message', formatMessage(chatBot, 'Welcome to Chatty!'));
 
         //Broadcast to others when a user connects
-        socket.broadcast.emit('message', formatMessage(chatBot, 'A user has joined the chat.')); 
+        socket.broadcast.to(user.room).emit('message', formatMessage(chatBot, `${user.username} has joined the chat.`)); 
     });
 
     //Emit user's messages to everyone
     socket.on('chatMessage', msg => {
-        io.emit('message', formatMessage('USER', msg));
+        const user = getCurrentUser(socket.id);
+        io.to(user.room).emit('message', formatMessage(user.username, msg));
     });
 
     //Notify everyone when a user disconnects
