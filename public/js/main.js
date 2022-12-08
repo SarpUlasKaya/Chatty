@@ -1,16 +1,14 @@
-//const e = require("express");
-
 const chatForm = document.getElementById('chat-form');
 const chatMessages = document.querySelector('.chat-messages');
 const roomName = document.getElementById('room-name');
 const roomUsers = document.getElementById('users');
 
 // Get username and room from URL
-const {username, room} = qs.parse(location.search, {
+const {username, room} = Qs.parse(location.search, {
     ignoreQueryPrefix: true
 });
 
-const socket = io();
+const socket = io.connect('http://localhost:3000');
 
 //Join chat
 socket.emit('joinRoom', {username, room});
@@ -35,7 +33,7 @@ chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
     //Get message text
-    const msg = e.target.elements.msg.value;
+    let msg = e.target.elements.msg.value;
     msg = msg.trim();
     if (!msg) {
         return false;

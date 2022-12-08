@@ -1,24 +1,25 @@
 const path = require('path');
 const http = require('http');
 const express = require('express');
-const socketio = require('socket.io');
+const socket = require('socket.io');
 const formatMessage = require('./utils/messages');
 const {addUser, getCurrentUser, removeUser, getUsersInRoom} = require('./utils/users');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server);
+const io = socket(server);
 const chatBot = 'Chatty';
 
 //Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
+//Set Server Port
+server.listen(3000, () => console.log('Server running on port 3000'));
+
 //Run when a client connects
-io.on('connection', socket => {
-    console.log("hello");
+io.on('connection', (socket) => {
     socket.on('joinRoom', ({username, room}) => {
-        console.log(username);
-        console.log(room);
+
         const user = addUser(socket.id, username, room);
         socket.join(user.room);
 
@@ -55,7 +56,3 @@ io.on('connection', socket => {
         });
     });
 });
-
-//Set Server Port
-const PORT = 3000 || process.env.PORT;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
