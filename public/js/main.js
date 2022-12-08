@@ -1,16 +1,25 @@
-const e = require("express");
-const socket = io();
+//const e = require("express");
 
 const chatForm = document.getElementById('chat-form');
 const chatMessages = document.querySelector('.chat-messages');
+const roomName = document.getElementById('room-name');
+const roomUsers = document.getElementById('users');
 
 // Get username and room from URL
 const {username, room} = qs.parse(location.search, {
     ignoreQueryPrefix: true
 });
 
+const socket = io();
+
 //Join chat
 socket.emit('joinRoom', {username, room});
+
+//Get room and users
+socket.on('roomUsers', ({room, users}) => {
+    getRoomName(room);
+    getRoomUsers(users);
+});
 
 //Message from server
 socket.on('message', message => {
@@ -22,11 +31,15 @@ socket.on('message', message => {
 });
 
 //Message submission
-chatForm.addEventListener('submit', e => {
+chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
     //Get message text
     const msg = e.target.elements.msg.value;
+    msg = msg.trim();
+    if (!msg) {
+        return false;
+    }
 
     //Emit message to the server
     socket.emit('chatMessage', msg);
@@ -45,4 +58,16 @@ function outputMessage(message) {
                         ${message.text}
                     </p>`;
     document.querySelector('.chat-messages').appendChild(div);
+}
+
+//Show room name on DOM
+function getRoomName(room) {
+    roomName.innerText = room;
+}
+
+//Show the users in the room on DOM
+function getRoomUsers(users) {
+    roomUsers.innerHTML = `
+        ${users.map(user => `<li>${user.username}</li>`).join('')}
+    `;
 }

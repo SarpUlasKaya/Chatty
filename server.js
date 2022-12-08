@@ -3,19 +3,22 @@ const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
 const formatMessage = require('./utils/messages');
-const {addUser, getCurrentUser} = require('./utils/users');
+const {addUser, getCurrentUser, removeUser, getUsersInRoom} = require('./utils/users');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
-const chatBot = 'Chatty'
+const chatBot = 'Chatty';
 
 //Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 //Run when a client connects
 io.on('connection', socket => {
+    console.log("hello");
     socket.on('joinRoom', ({username, room}) => {
+        console.log(username);
+        console.log(room);
         const user = addUser(socket.id, username, room);
         socket.join(user.room);
 
@@ -23,7 +26,13 @@ io.on('connection', socket => {
         socket.emit('message', formatMessage(chatBot, 'Welcome to Chatty!'));
 
         //Broadcast to others when a user connects
-        socket.broadcast.to(user.room).emit('message', formatMessage(chatBot, `${user.username} has joined the chat.`)); 
+        socket.broadcast.to(user.room).emit('message', formatMessage(chatBot, `${user.username} has joined the chat.`));
+
+        //Update users in the room
+        io.to(user.room).emit('roomUsers', {
+            room: user.room,
+            users: getUsersInRoom(user.room)
+        });
     });
 
     //Emit user's messages to everyone
@@ -34,7 +43,16 @@ io.on('connection', socket => {
 
     //Notify everyone when a user disconnects
     socket.on('disconnect', () => {
-        io.emit('message', formatMessage(chatBot, 'A user has left the chat.'));
+        const user = removeUser(socket.id);
+        if (user) {
+            io.to(user.room).emit('message', formatMessage(chatBot, `${user.username} has left the chat.`));
+        }
+
+        //Update users in the room
+        io.to(user.room).emit('roomUsers', {
+            room: user.room,
+            users: getUsersInRoom(user.room)
+        });
     });
 });
 
